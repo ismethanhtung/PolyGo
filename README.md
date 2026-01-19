@@ -78,10 +78,71 @@ Open `http://localhost:8080/swagger/index.html` for interactive API docs.
 
 ### WebSocket
 
+PolyGo cung cấp WebSocket endpoints để nhận dữ liệu real-time từ Polymarket. Server tự động kết nối với Polymarket WebSocket và proxy dữ liệu đến clients.
+
 | Endpoint | Description |
 |----------|-------------|
-| `/ws/market/:market_id` | Subscribe to market updates |
-| `/ws/markets` | Subscribe to all market updates |
+| `/ws/market/:market_id` | Subscribe to updates cho một market cụ thể |
+| `/ws/markets` | Subscribe to updates cho tất cả markets |
+
+#### WebSocket Usage
+
+**1. Single Market Subscription:**
+```javascript
+const ws = new WebSocket('ws://localhost:8080/ws/market/0x1234...');
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log('Market update:', data);
+};
+```
+
+**2. All Markets Subscription:**
+```javascript
+const ws = new WebSocket('ws://localhost:8080/ws/markets');
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log('Market update:', data);
+};
+
+// Gửi ping để kiểm tra kết nối
+ws.send(JSON.stringify({ type: 'ping' }));
+```
+
+**3. Dynamic Subscription (Single Market mode):**
+```javascript
+const ws = new WebSocket('ws://localhost:8080/ws/market/0x1234...');
+
+// Subscribe thêm markets
+ws.send(JSON.stringify({
+    type: 'subscribe',
+    markets: ['0x5678...', '0x9abc...']
+}));
+
+// Unsubscribe markets
+ws.send(JSON.stringify({
+    type: 'unsubscribe',
+    markets: ['0x5678...']
+}));
+```
+
+#### Testing WebSocket
+
+Mở file `websocket-test.html` trong trình duyệt để test WebSocket và xem streaming data:
+
+```bash
+# Mở file trong trình duyệt
+open websocket-test.html
+# hoặc
+xdg-open websocket-test.html
+```
+
+File này cung cấp:
+- Giao diện để kết nối WebSocket
+- Hiển thị real-time messages
+- Xem dữ liệu JSON mới nhất
+- Thống kê số lượng messages nhận được
 
 ## Configuration
 

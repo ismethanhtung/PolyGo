@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolyGo WebSocket Test - Real-time Market Data</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        input[type="text"], select {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+        
+        .panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.3em;
+        }
+        
+        .messages {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-left: 3px solid #667eea;
+            padding-left: 12px;
+            word-wrap: break-word;
+        }
+        
+        .message.info {
+            border-left-color: #17a2b8;
+        }
+        
+        .message.error {
+            border-left-color: #dc3545;
+        }
+        
+        .message.success {
+            border-left-color: #28a745;
+        }
+        
+        .message-time {
+            color: #888;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .json-viewer {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .clear-btn {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 PolyGo WebSocket Test</h1>
+            <p>Xem dữ liệu real-time từ Polymarket</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Chế độ kết nối:</label>
+                <select id="connectionMode">
+                    <option value="single">Single Market (một market cụ thể)</option>
+                    <option value="all">All Markets (tất cả markets)</option>
+                </select>
+            </div>
+            
+            <div class="control-group" id="marketIdGroup">
+                <label>Market ID:</label>
+                <div class="input-group">
+                    <input type="text" id="marketId" placeholder="Nhập Market ID (ví dụ: 0x1234...)">
+                    <button class="btn-primary" onclick="getSampleMarkets()">Lấy Market mẫu</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Server URL:</label>
+                <div class="input-group">
+                    <input type="text" id="serverUrl" value="ws://localhost:8080" placeholder="ws://localhost:8080">
+                    <button class="btn-success" onclick="connect()" id="connectBtn">Kết nối</button>
+                    <button class="btn-danger" onclick="disconnect()" id="disconnectBtn" disabled>Ngắt kết nối</button>
+                </div>
+                <span id="connectionStatus" class="status disconnected">Chưa kết nối</span>
+            </div>
+            
+            <div class="control-group">
+                <button class="btn-danger clear-btn" onclick="clearMessages()">Xóa tin nhắn</button>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="panel">
+                <h2>📨 Tin nhắn WebSocket</h2>
+                <div class="messages" id="messages"></div>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="messageCount">0</div>
+                        <div class="stat-label">Tổng tin nhắn</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="errorCount">0</div>
+                        <div class="stat-label">Lỗi</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="dataCount">0</div>
+                        <div class="stat-label">Dữ liệu nhận được</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>📊 Dữ liệu mới nhất</h2>
+                <div class="json-viewer" id="latestData">Chưa có dữ liệu...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let messageCount = 0;
+        let errorCount = 0;
+        let dataCount = 0;
+        
+        const connectionMode = document.getElementById('connectionMode');
+        const marketIdGroup = document.getElementById('marketIdGroup');
+        const marketIdInput = document.getElementById('marketId');
+        const serverUrlInput = document.getElementById('serverUrl');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const messagesDiv = document.getElementById('messages');
+        const latestDataDiv = document.getElementById('latestData');
+        
+        connectionMode.addEventListener('change', function() {
+            if (this.value === 'all') {
+                marketIdGroup.style.display = 'none';
+            } else {
+                marketIdGroup.style.display = 'block';
+            }
+        });
+        
+        function addMessage(text, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            const time = new Date().toLocaleTimeString('vi-VN');
+            messageDiv.innerHTML = `<span class="message-time">[${time}]</span>${text}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            if (type === 'error') {
+                errorCount++;
+                document.getElementById('errorCount').textContent = errorCount;
+            } else if (type === 'success') {
+                dataCount++;
+                document.getElementById('dataCount').textContent = dataCount;
+            }
+            
+            messageCount++;
+            document.getElementById('messageCount').textContent = messageCount;
+        }
+        
+        function updateLatestData(data) {
+            try {
+                const json = JSON.parse(data);
+                latestDataDiv.textContent = JSON.stringify(json, null, 2);
+            } catch (e) {
+                latestDataDiv.textContent = data;
+            }
+        }
+        
+        function connect() {
+            const mode = connectionMode.value;
+            const serverUrl = serverUrlInput.value;
+            
+            if (!serverUrl) {
+                addMessage('Vui lòng nhập Server URL', 'error');
+                return;
+            }
+            
+            if (mode === 'single' && !marketIdInput.value) {
+                addMessage('Vui lòng nhập Market ID', 'error');
+                return;
+            }
+            
+            let wsUrl;
+            if (mode === 'single') {
+                wsUrl = `${serverUrl.replace('http://', 'ws://').replace('https://', 'wss://')}/ws/market/${marketIdInput.value}`;
+            } else {
+                wsUrl = `${serverUrl.replace('http://', 'ws://').replace('https://', 'wss://')}/ws/markets`;
+            }
+            
+            addMessage(`Đang kết nối đến: ${wsUrl}`, 'info');
+            connectionStatus.textContent = 'Đang kết nối...';
+            connectionStatus.className = 'status connecting';
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                addMessage('✅ Kết nối thành công!', 'success');
+                connectionStatus.textContent = 'Đã kết nối';
+                connectionStatus.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                
+                // Gửi ping để kiểm tra
+                if (mode === 'all') {
+                    ws.send(JSON.stringify({ type: 'ping' }));
+                }
+            };
+            
+            ws.onmessage = function(event) {
+                addMessage(`📨 Nhận dữ liệu: ${event.data.substring(0, 200)}${event.data.length > 200 ? '...' : ''}`, 'success');
+                updateLatestData(event.data);
+            };
+            
+            ws.onerror = function(error) {
+                addMessage(`❌ Lỗi WebSocket: ${error.message || 'Unknown error'}`, 'error');
+                connectionStatus.textContent = 'Lỗi kết nối';
+                connectionStatus.className = 'status disconnected';
+            };
+            
+            ws.onclose = function() {
+                addMessage('🔌 Đã ngắt kết nối', 'info');
+                connectionStatus.textContent = 'Đã ngắt kết nối';
+                connectionStatus.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                ws = null;
+            };
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+        
+        function clearMessages() {
+            messagesDiv.innerHTML = '';
+            messageCount = 0;
+            errorCount = 0;
+            dataCount = 0;
+            document.getElementById('messageCount').textContent = '0';
+            document.getElementById('errorCount').textContent = '0';
+            document.getElementById('dataCount').textContent = '0';
+            latestDataDiv.textContent = 'Chưa có dữ liệu...';
+        }
+        
+        async function getSampleMarkets() {
+            try {
+                const serverUrl = serverUrlInput.value.replace('ws://', 'http://').replace('wss://', 'https://');
+                const response = await fetch(`${serverUrl}/api/v1/markets?limit=5`);
+                const data = await response.json();
+                
+                if (data.data && data.data.length > 0) {
+                    const market = data.data[0];
+                    marketIdInput.value = market.id;
+                    addMessage(`✅ Đã lấy Market ID mẫu: ${market.id} - ${market.question}`, 'success');
+                } else {
+                    addMessage('Không tìm thấy market nào', 'error');
+                }
+            } catch (error) {
+                addMessage(`Lỗi khi lấy markets: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-connect on Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !connectBtn.disabled) {
+                connect();
+            }
+        });
+    </script>
+</body>
+</html>
