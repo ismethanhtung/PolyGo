@@ -2,6 +2,7 @@ package polymarket
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -38,7 +39,7 @@ type WSMessage struct {
 	Markets   []string        `json:"markets,omitempty"`
 	Assets    []string        `json:"assets,omitempty"`
 	Auth      *WSAuth         `json:"auth,omitempty"`
-	Data      sonic.RawMessage `json:"data,omitempty"`
+	Data      json.RawMessage `json:"data,omitempty"`
 	Timestamp int64           `json:"timestamp,omitempty"`
 }
 
