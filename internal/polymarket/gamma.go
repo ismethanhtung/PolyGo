@@ -25,8 +25,7 @@ func (g *GammaClient) GetEvents(params *models.EventQueryParams) ([]byte, bool, 
 	cacheKey := cache.EventsListKey(query)
 	url := g.client.Gamma("/events" + query)
 
-	ttl := g.client.cache.config.EventsTTL
-	return g.client.GetWithCache(url, cacheKey, ttl)
+	return g.client.GetWithCache(url, cacheKey, g.client.config.ReadTimeout)
 }
 
 // GetEvent retrieves a single event by ID

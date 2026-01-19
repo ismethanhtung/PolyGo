@@ -1,0 +1,133 @@
+name: CI/CD - Build & Push Docker image to ECR (PolyGo)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REGISTRY: 385003642107.dkr.ecr.ap-southeast-1.amazonaws.com
+  ECR_REPOSITORY: polygo
+
+  # Thông tin ECS (prod)
+  ECS_CLUSTER: prod-Polygo-cluster
+  ECS_SERVICE: prod-polygo-service
+
+  ECS_TASK_DEFINITION: prod-Polygo-task
+
+jobs:
+  build-and-deploy:
+    name: Build, push image & deploy ECS
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write      # cần cho OIDC
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::385003642107:role/dev-github-actions-polygo-role
+          role-session-name: github-actions-polygo
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push multi-arch image (with cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Get image URI
+        id: image-uri
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            IMAGE_TAG="latest"
+          else
+            IMAGE_TAG="${{ github.sha }}"
+          fi
+          IMAGE_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}"
+          echo "image_uri=${IMAGE_URI}" >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "Image URI: ${IMAGE_URI}"
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --query 'taskDefinition' > task-definition-raw.json
+
+      - name: Update task definition with new image
+        id: task-def
+        run: |
+          IMAGE_URI="${{ steps.image-uri.outputs.image_uri }}"
+
+          jq --arg IMAGE_URI "$IMAGE_URI" '
+            .containerDefinitions[0].image = $IMAGE_URI |
+            del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
+            walk(if type == "object" then with_entries(select(.value != null)) else . end)
+          ' task-definition-raw.json > task-definition-new.json
+
+          echo "Updated task definition:"
+          cat task-definition-new.json
+
+      - name: Register new task definition
+        id: task-def-registered
+        run: |
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://task-definition-new.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task_def_arn=${TASK_DEF_ARN}" >> $GITHUB_OUTPUT
+          echo "New task definition registered: ${TASK_DEF_ARN}"
+
+      - name: Deploy to ECS service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ steps.task-def-registered.outputs.task_def_arn }} \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for deployment to complete
+        run: |
+          echo "Waiting for ECS service deployment to complete..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --region ${{ env.AWS_REGION }}
+          echo "Deployment completed successfully!"

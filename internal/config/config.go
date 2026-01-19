@@ -158,18 +158,5 @@ func bindEnvVars() {
 
 // GetAddress returns the full address string
 func (c *ServerConfig) GetAddress() string {
-	// Convert port to string manually to avoid strconv import
-	port := c.Port
-	if port == 0 {
-		return c.Host + ":0"
-	}
-	
-	var buf [20]byte
-	i := len(buf)
-	for port > 0 {
-		i--
-		buf[i] = byte('0' + port%10)
-		port /= 10
-	}
-	return c.Host + ":" + string(buf[i:])
+	return c.Host + ":" + string(rune(c.Port))
 }

@@ -202,4 +202,3 @@ Expected performance:
 ## License
 
 MIT License
-# PolyGo
