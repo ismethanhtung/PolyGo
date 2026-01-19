@@ -20,17 +20,238 @@ const docTemplate = `{
   },
   "host": "{{.Host}}",
   "basePath": "{{.BasePath}}",
-  "schemes": ["http", "https"]
-}`
+  "schemes": ["http", "https"],
+  "securityDefinitions": {
+    "ApiKeyAuth": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "POLY-API-KEY"
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Check if the server is running",
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "Server is healthy"
+          }
+        }
+      }
+    },
+    "/api/v1/markets": {
+      "get": {
+        "tags": ["Markets"],
+        "summary": "List all markets",
+        "description": "Get a list of markets with optional filtering",
+        "produces": ["application/json"],
+        "parameters": [
+          {"name": "limit", "in": "query", "type": "integer", "default": 100},
+          {"name": "cursor", "in": "query", "type": "string"},
+          {"name": "active", "in": "query", "type": "boolean"},
+          {"name": "closed", "in": "query", "type": "boolean"}
+        ],
+        "responses": {
+          "200": {"description": "List of markets"}
+        }
+      }
+    },
+    "/api/v1/markets/{id}": {
+      "get": {
+        "tags": ["Markets"],
+        "summary": "Get market by ID",
+        "produces": ["application/json"],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "type": "string"}
+        ],
+        "responses": {
+          "200": {"description": "Market details"},
+          "404": {"description": "Market not found"}
+        }
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "tags": ["Events"],
+        "summary": "List all events",
+        "produces": ["application/json"],
+        "parameters": [
+          {"name": "limit", "in": "query", "type": "integer", "default": 100},
+          {"name": "cursor", "in": "query", "type": "string"},
+          {"name": "active", "in": "query", "type": "boolean"}
+        ],
+        "responses": {
+          "200": {"description": "List of events"}
+        }
+      }
+    },
+    "/api/v1/events/{id}": {
+      "get": {
+        "tags": ["Events"],
+        "summary": "Get event by ID",
+        "produces": ["application/json"],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "type": "string"}
+        ],
+        "responses": {
+          "200": {"description": "Event details"},
+          "404": {"description": "Event not found"}
+        }
+      }
+    },
+    "/api/v1/price/{token_id}": {
+      "get": {
+        "tags": ["Prices"],
+        "summary": "Get current price",
+        "produces": ["application/json"],
+        "parameters": [
+          {"name": "token_id", "in": "path", "required": true, "type": "string"},
+          {"name": "side", "in": "query", "type": "string", "default": "BUY"}
+        ],
+        "responses": {
+          "200": {"description": "Current price"}
+        }
+      }
+    },
+    "/api/v1/book/{token_id}": {
+      "get": {
+        "tags": ["Prices"],
+        "summary": "Get order book",
+        "produces": ["application/json"],
+        "parameters": [
+          {"name": "token_id", "in": "path", "required": true, "type": "string"}
+        ],
+        "responses": {
+          "200": {"description": "Order book"}
+        }
+      }
+    },
+    "/api/v1/spread/{token_id}": {
+      "get": {
+        "tags": ["Prices"],
+        "summary": "Get spread",
+        "produces": ["application/json"],
+        "parameters": [
+          {"name": "token_id", "in": "path", "required": true, "type": "string"}
+        ],
+        "responses": {
+          "200": {"description": "Spread info"}
+        }
+      }
+    },
+    "/api/v1/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get user orders",
+        "security": [{"ApiKeyAuth": []}],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {"description": "List of orders"},
+          "401": {"description": "Unauthorized"}
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create order",
+        "security": [{"ApiKeyAuth": []}],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "name": "order",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "tokenID": {"type": "string"},
+                "side": {"type": "string", "enum": ["BUY", "SELL"]},
+                "price": {"type": "string"},
+                "size": {"type": "string"}
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {"description": "Order created"},
+          "401": {"description": "Unauthorized"}
+        }
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Cancel order",
+        "security": [{"ApiKeyAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "type": "string"}
+        ],
+        "responses": {
+          "200": {"description": "Order cancelled"},
+          "401": {"description": "Unauthorized"}
+        }
+      }
+    },
+    "/api/v1/positions": {
+      "get": {
+        "tags": ["User Data"],
+        "summary": "Get user positions",
+        "produces": ["application/json"],
+        "parameters": [
+          {"name": "address", "in": "query", "required": true, "type": "string"},
+          {"name": "limit", "in": "query", "type": "integer", "default": 100}
+        ],
+        "responses": {
+          "200": {"description": "List of positions"}
+        }
+      }
+    },
+    "/api/v1/top-movers": {
+      "get": {
+        "tags": ["Markets"],
+        "summary": "Get top moving markets",
+        "produces": ["application/json"],
+        "parameters": [
+          {"name": "limit", "in": "query", "type": "integer", "default": 10}
+        ],
+        "responses": {
+          "200": {"description": "Top movers"}
+        }
+      }
+    },
+    "/api/v1/leaderboard": {
+      "get": {
+        "tags": ["User Data"],
+        "summary": "Get trading leaderboard",
+        "produces": ["application/json"],
+        "responses": {
+          "200": {"description": "Leaderboard"}
+        }
+      }
+    }
+  },
+  "tags": [
+    {"name": "Health", "description": "Health check endpoints"},
+    {"name": "Markets", "description": "Market operations"},
+    {"name": "Events", "description": "Event operations"},
+    {"name": "Prices", "description": "Price and order book operations"},
+    {"name": "Orders", "description": "Order management (authenticated)"},
+    {"name": "User Data", "description": "User data operations"}
+  ]
+}
+`
 
 // SwaggerInfo holds exported Swagger Info
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "PolyGo API",
-	Description:      "High-performance Polymarket API proxy",
+	Description:      "High-performance Polymarket API proxy with caching and WebSocket support",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

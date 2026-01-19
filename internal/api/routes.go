@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/swagger"
 	"github.com/gofiber/websocket/v2"
 	
-	_ "github.com/polygo/docs" // Import để đảm bảo init() được gọi và SwaggerInfo được đăng ký
 	"github.com/polygo/internal/api/handlers"
 	"github.com/polygo/internal/api/middleware"
 	"github.com/polygo/internal/cache"
@@ -118,8 +117,7 @@ func (s *Server) setupRoutes() {
 	s.app.Get("/ready", healthHandler.Ready)
 	s.app.Get("/stats", healthHandler.Stats)
 	
-	// Swagger - sử dụng HandlerDefault với docs package đã được import
-	// HandlerDefault sẽ tự động tìm SwaggerInfo từ package docs
+	// Swagger
 	s.app.Get("/swagger/*", swagger.HandlerDefault)
 	
 	// API v1 routes
