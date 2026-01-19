@@ -28,7 +28,7 @@ import (
 	"github.com/polygo/internal/api"
 	"github.com/polygo/internal/cache"
 	"github.com/polygo/internal/config"
-	_ "github.com/polygo/docs"
+	_ "github.com/polygo/internal/docs"
 )
 
 func main() {

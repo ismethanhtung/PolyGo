@@ -15,7 +15,7 @@ COPY . .
 
 # Tidy dependencies, download and verify
 # go mod tidy ensures go.sum has all entries based on actual imports
-RUN go mod tidy && \
+RUN GOPRIVATE=github.com/polygo go mod tidy && \
     go mod download && \
     go mod verify
 
