@@ -25,6 +25,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	_ "github.com/polygo/docs" // Import để đảm bảo SwaggerInfo được đăng ký
 	"github.com/polygo/internal/api"
 	"github.com/polygo/internal/cache"
 	"github.com/polygo/internal/config"
