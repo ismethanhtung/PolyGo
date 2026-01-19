@@ -10,14 +10,14 @@ WORKDIR /app
 # Copy go mod files first for better cache layer
 COPY go.mod go.sum* ./
 
-# Download dependencies and verify checksums
-# If go.sum doesn't exist, go mod tidy will create it
+# Copy source code (needed for go mod tidy to analyze imports)
+COPY . .
+
+# Update go.sum based on actual source code imports and download dependencies
+# go mod tidy analyzes the source code and ensures go.sum has all required entries
 RUN go mod tidy && \
     go mod download && \
     go mod verify
-
-# Copy source code
-COPY . .
 
 # Build binary with optimizations
 # Remove debug info (-w) and symbol table (-s) for smaller binary
