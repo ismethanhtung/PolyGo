@@ -1,47 +1,60 @@
 # Build stage
 FROM golang:1.22-alpine AS builder
 
-# Install build dependencies
+# Install build dependencies and git (needed for version info)
 RUN apk add --no-cache git ca-certificates tzdata
 
 # Set working directory
 WORKDIR /app
 
-# Copy go mod file
-COPY go.mod ./
+# Copy go mod files first for better cache layer
+COPY go.mod go.sum* ./
 
-# Download dependencies (go.sum will be auto-generated if missing)
-RUN go mod download
+# Download dependencies and verify checksums
+# If go.sum doesn't exist, go mod tidy will create it
+RUN go mod tidy && \
+    go mod download && \
+    go mod verify
 
 # Copy source code
 COPY . .
 
-# Build with optimizations
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+# Build binary with optimizations
+# Remove debug info (-w) and symbol table (-s) for smaller binary
+# Set version from git tag or default to 'dev'
+RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-w -s -X main.version=$(git describe --tags --always --dirty 2>/dev/null || echo 'dev')" \
+    -trimpath \
     -o /app/polygo \
     ./cmd/server
 
-# Final stage
+# Verify binary was created
+RUN ls -lh /app/polygo && \
+    file /app/polygo
+
+# Runtime stage - minimal Alpine image
 FROM alpine:3.19
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
+# Labels for metadata
+LABEL maintainer="PolyGo Team" \
+      org.opencontainers.image.title="PolyGo" \
+      org.opencontainers.image.description="High-performance Polymarket API proxy" \
+      org.opencontainers.image.vendor="PolyGo"
 
-# Create non-root user
-RUN addgroup -g 1000 polygo && \
-    adduser -u 1000 -G polygo -s /bin/sh -D polygo
+# Install only runtime dependencies and create user in one layer
+RUN apk add --no-cache ca-certificates tzdata wget && \
+    addgroup -g 1000 polygo && \
+    adduser -u 1000 -G polygo -s /bin/sh -D polygo && \
+    rm -rf /var/cache/apk/* /tmp/*
 
+# Set working directory
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/polygo /app/polygo
+# Copy binary from builder stage
+COPY --from=builder --chown=polygo:polygo /app/polygo /app/polygo
 
-# Copy config if exists
-COPY --from=builder /app/config*.yaml /app/ 2>/dev/null || true
-
-# Set ownership
-RUN chown -R polygo:polygo /app
+# Note: Config files can be mounted as volumes or use environment variables
+# If config.yaml is needed, mount it at runtime: -v /path/to/config.yaml:/app/config.yaml
 
 # Switch to non-root user
 USER polygo
@@ -53,5 +66,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-# Run
-ENTRYPOINT ["/app/polygo"]
+# Use CMD instead of ENTRYPOINT for flexibility
+CMD ["/app/polygo"]

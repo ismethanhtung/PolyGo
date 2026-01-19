@@ -1,0 +1,63 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+docs/
+*.md
+
+# CI/CD
+.github/
+
+# Build artifacts
+build/
+tmp/
+temp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+polygo
+*.test
+*.out
+coverage.html
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config files with secrets
+config.local.yaml
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+build-errors.log
+
+# Test files
+tests/
+testdata/
+
+# Development tools
+.air.toml
+docker-compose.yml
+Makefile
+
+# Dependencies (will be downloaded)
+vendor/
+
+# Swagger generated (optional, can be included if needed)
+# docs/swagger.json
