@@ -134,6 +134,11 @@ func (c *Cache) HitRatio() float64 {
 	return metrics.Ratio()
 }
 
+// GetConfig returns the cache configuration (for accessing TTL values)
+func (c *Cache) GetConfig() *config.CacheConfig {
+	return c.config
+}
+
 // CacheKey helpers for consistent key generation
 const (
 	PrefixMarkets   = "markets:"

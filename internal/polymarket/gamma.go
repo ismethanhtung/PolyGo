@@ -33,7 +33,7 @@ func (g *GammaClient) GetEvent(id string) ([]byte, bool, error) {
 	cacheKey := cache.EventKey(id)
 	url := g.client.Gamma("/events/" + id)
 
-	ttl := g.client.cache.config.EventsTTL
+	ttl := g.client.cache.GetConfig().EventsTTL
 	return g.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -42,7 +42,7 @@ func (g *GammaClient) GetEventBySlug(slug string) ([]byte, bool, error) {
 	cacheKey := cache.EventKey("slug:" + slug)
 	url := g.client.Gamma("/events?slug=" + url.QueryEscape(slug))
 
-	ttl := g.client.cache.config.EventsTTL
+	ttl := g.client.cache.GetConfig().EventsTTL
 	return g.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -52,7 +52,7 @@ func (g *GammaClient) GetMarkets(params *models.MarketQueryParams) ([]byte, bool
 	cacheKey := cache.MarketsListKey(query)
 	url := g.client.Gamma("/markets" + query)
 
-	ttl := g.client.cache.config.MarketsTTL
+	ttl := g.client.cache.GetConfig().MarketsTTL
 	return g.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -61,7 +61,7 @@ func (g *GammaClient) GetMarket(id string) ([]byte, bool, error) {
 	cacheKey := cache.MarketKey(id)
 	url := g.client.Gamma("/markets/" + id)
 
-	ttl := g.client.cache.config.MarketsTTL
+	ttl := g.client.cache.GetConfig().MarketsTTL
 	return g.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -70,7 +70,7 @@ func (g *GammaClient) GetMarketBySlug(slug string) ([]byte, bool, error) {
 	cacheKey := cache.MarketKey("slug:" + slug)
 	url := g.client.Gamma("/markets?slug=" + url.QueryEscape(slug))
 
-	ttl := g.client.cache.config.MarketsTTL
+	ttl := g.client.cache.GetConfig().MarketsTTL
 	return g.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -79,7 +79,7 @@ func (g *GammaClient) GetMarketByConditionID(conditionID string) ([]byte, bool, 
 	cacheKey := cache.MarketKey("condition:" + conditionID)
 	url := g.client.Gamma("/markets?condition_id=" + conditionID)
 
-	ttl := g.client.cache.config.MarketsTTL
+	ttl := g.client.cache.GetConfig().MarketsTTL
 	return g.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -88,7 +88,7 @@ func (g *GammaClient) GetMarketByClobTokenID(tokenID string) ([]byte, bool, erro
 	cacheKey := cache.MarketKey("token:" + tokenID)
 	url := g.client.Gamma("/markets?clob_token_id=" + tokenID)
 
-	ttl := g.client.cache.config.MarketsTTL
+	ttl := g.client.cache.GetConfig().MarketsTTL
 	return g.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -97,7 +97,7 @@ func (g *GammaClient) SearchEvents(query string, limit int) ([]byte, bool, error
 	cacheKey := cache.EventsListKey("search:" + query + ":" + strconv.Itoa(limit))
 	u := g.client.Gamma(fmt.Sprintf("/events?_q=%s&_limit=%d", url.QueryEscape(query), limit))
 
-	ttl := g.client.cache.config.EventsTTL
+	ttl := g.client.cache.GetConfig().EventsTTL
 	return g.client.GetWithCache(u, cacheKey, ttl)
 }
 

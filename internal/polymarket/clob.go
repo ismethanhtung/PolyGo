@@ -25,7 +25,7 @@ func (c *ClobClient) GetPrice(tokenID string, side models.Side) ([]byte, bool, e
 	cacheKey := cache.PriceKey(tokenID + ":" + string(side))
 	url := c.client.CLOB(fmt.Sprintf("/price?token_id=%s&side=%s", tokenID, side))
 
-	ttl := c.client.cache.config.PricesTTL
+	ttl := c.client.cache.GetConfig().PricesTTL
 	return c.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -49,7 +49,7 @@ func (c *ClobClient) GetOrderBook(tokenID string) ([]byte, bool, error) {
 	cacheKey := cache.OrderBookKey(tokenID)
 	url := c.client.CLOB("/book?token_id=" + tokenID)
 
-	ttl := c.client.cache.config.OrderBookTTL
+	ttl := c.client.cache.GetConfig().OrderBookTTL
 	return c.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -72,7 +72,7 @@ func (c *ClobClient) GetSpread(tokenID string) ([]byte, bool, error) {
 	cacheKey := cache.SpreadKey(tokenID)
 	url := c.client.CLOB("/spread?token_id=" + tokenID)
 
-	ttl := c.client.cache.config.PricesTTL
+	ttl := c.client.cache.GetConfig().PricesTTL
 	return c.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -81,7 +81,7 @@ func (c *ClobClient) GetMidpoint(tokenID string) ([]byte, bool, error) {
 	cacheKey := cache.PriceKey("mid:" + tokenID)
 	url := c.client.CLOB("/midpoint?token_id=" + tokenID)
 
-	ttl := c.client.cache.config.PricesTTL
+	ttl := c.client.cache.GetConfig().PricesTTL
 	return c.client.GetWithCache(url, cacheKey, ttl)
 }
 
@@ -104,7 +104,7 @@ func (c *ClobClient) GetLastTradePrice(tokenID string) ([]byte, bool, error) {
 	cacheKey := cache.PriceKey("last:" + tokenID)
 	url := c.client.CLOB("/last-trade-price?token_id=" + tokenID)
 
-	ttl := c.client.cache.config.PricesTTL
+	ttl := c.client.cache.GetConfig().PricesTTL
 	return c.client.GetWithCache(url, cacheKey, ttl)
 }
 
