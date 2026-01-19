@@ -16,7 +16,7 @@ env:
   ECS_CLUSTER: prod-Polygo-cluster
   ECS_SERVICE: prod-polygo-service
 
-  ECS_TASK_DEFINITION: prod-Polygo-task
+  ECS_TASK_DEFINITION: prod-polygo-task
 
 jobs:
   build-and-deploy:
@@ -84,16 +84,26 @@ jobs:
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           echo "Image URI: ${IMAGE_URI}"
 
-      - name: Download current task definition
+      - name: Download current task definition or use template
+        id: task-def-check
         run: |
-          aws ecs describe-task-definition \
+          if aws ecs describe-task-definition \
             --task-definition ${{ env.ECS_TASK_DEFINITION }} \
-            --query 'taskDefinition' > task-definition-raw.json
+            --query 'taskDefinition' > task-definition-raw.json 2>/dev/null; then
+            echo "task_def_exists=true" >> $GITHUB_OUTPUT
+            echo "✓ Using existing task definition"
+          else
+            echo "task_def_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠ Task definition not found, using template from repository"
+            # Copy template as base
+            cp task-definition.json task-definition-raw.json
+          fi
 
       - name: Update task definition with new image
         id: task-def
         run: |
           IMAGE_URI="${{ steps.image-uri.outputs.image_uri }}"
+          echo "Updating task definition with image: ${IMAGE_URI}"
 
           jq --arg IMAGE_URI "$IMAGE_URI" '
             .containerDefinitions[0].image = $IMAGE_URI |
